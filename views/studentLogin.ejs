@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Student Login</title>
+  </head>
+  <body>
+    <h1>Login</h1>
+    <form action="/student/login" method="post">
+      <div>
+        <label for="username">Username:</label>
+        <input type="text" name="username" id="username" required />
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" name="password" id="password" required />
+      </div>
+      <button type="submit">Login</button>
+    </form>
+    <% if (message) { %>
+    <p><%= message %></p>
+    <% } %>
+  </body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Monthly Fees</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid black;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      .grand-total {
+        font-weight: bold;
+        text-align: right;
+      }
+    </style>
+    <script>
+      function confirmDelete(event) {
+        event.preventDefault();
+        const input = prompt("Type 'DELETE' to confirm the deletion:");
+        if (input === "DELETE") {
+          event.target.submit();
+        } else {
+          alert("Confirmation failed. Please type 'DELETE' to proceed.");
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Add Monthly Fees</h1>
+    <form action="/admin/add-monthly-fees" method="POST">
+      <label for="month">Month:</label>
+      <select name="month" required>
+        <option value="January">January</option>
+        <option value="February">February</option>
+        <option value="March">March</option>
+        <option value="April">April</option>
+        <option value="May">May</option>
+        <option value="June">June</option>
+        <option value="July">July</option>
+        <option value="August">August</option>
+        <option value="September">September</option>
+        <option value="October">October</option>
+        <option value="November">November</option>
+        <option value="December">December</option>
+      </select>
+      <label for="year">Year:</label>
+      <select name="year" required>
+        <% const currentYear = new Date().getFullYear(); %> <% for (let year =
+        currentYear; year <= currentYear + 4; year++) { %>
+        <option value="<%= year %>"><%= year %></option>
+        <% } %>
+      </select>
+      <label for="feeAmount">Fee Amount:</label>
+      <input type="number" name="feeAmount" placeholder="Fee Amount" required />
+      <button type="submit">Add Fees</button>
+    </form>
+
+    <h2>Existing Monthly Fees</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Fee Amount</th>
+          <th>Pending Count</th>
+          <th>Pending Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% feesWithPendingAmount.forEach(fee => { %>
+        <tr>
+          <td><%= `${fee.month} ${fee.year}` %></td>
+          <td><%= fee.feeAmount %></td>
+          <td><%= fee.pendingCount %></td>
+          <td><%= fee.pendingAmount %></td>
+          <td class="action-buttons">
+            <a
+              href="/admin/generate-report?month=<%= fee.month %>&year=<%= fee.year %>"
+            >
+              <button>Generate Report</button>
+            </a>
+            <form
+              action="/admin/delete-monthly-fees/<%= fee._id %>"
+              method="POST"
+              onsubmit="confirmDelete(event);"
+            >
+              <button type="submit">Delete Fee</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+        <tr class="grand-total">
+          <td colspan="3">Grand Total:</td>
+          <td><%= grandTotal %></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    <a href="/admin"><button>Back to Admin Page</button></a>
+  </body>
+</html>
