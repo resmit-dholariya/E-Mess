@@ -40,7 +40,9 @@
 
       function sortTable(columnIndex) {
         const table = document.querySelector("table");
-        const rows = Array.from(table.getElementsByTagName("tr")).slice(1); // Skip header row
+        const tbody = table.querySelector("tbody");
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+        
         const isPendingCountColumn = columnIndex === 4;
         const isNumeric = !isNaN(
           parseFloat(rows[0].getElementsByTagName("td")[columnIndex].innerText)
@@ -54,19 +56,21 @@
             const valueA = parseFloat(cellA);
             const valueB = parseFloat(cellB);
 
+            // Sorting logic: Descending order for pending months count, ascending for others
             if (isPendingCountColumn) {
-              return valueB - valueA; // Descending order for pending months count
+              return valueB - valueA; // Descending order
+            } else {
+              return valueA - valueB; // Ascending order
             }
-
-            return valueA - valueB; // Ascending order for other numeric columns
           } else {
             return cellA.localeCompare(cellB); // Text comparison for non-numeric columns
           }
         });
 
-        rows.forEach((row) => table.querySelector("tbody").appendChild(row));
+        // Re-attach rows to the table in the sorted order
+        rows.forEach((row) => tbody.appendChild(row));
       }
-    </script>
+  </script>
   </head>
   <body>
     <h1>Admin Dashboard</h1>
@@ -97,9 +101,7 @@
           <td><%= student.mobileNumber %></td>
           <td><%= student.pendingMonthCount %></td>
           <td class="action-buttons">
-            <a href="/admin/view-student/<%= student._id %>"
-              ><button>View Details</button></a
-            >
+            <a href="/admin/view-student/<%= student._id %>"><button>View Details</button></a>
             <form
               action="/admin/delete-student/<%= student._id %>"
               method="POST"

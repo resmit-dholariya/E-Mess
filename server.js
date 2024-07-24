@@ -5,10 +5,10 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const passport = require("passport");
 const flash = require("connect-flash");
-const studentRoutes = require("./routes/student");
-const adminRoutes = require("./routes/admin");
+const studentRoutes = require("./routes/studentRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const passportConfig = require("./config/passport");
-const connectdb = require("./db");
+const connectdb = require("./databaseSetup");
 
 const app = express();
 

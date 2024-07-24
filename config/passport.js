@@ -1,6 +1,6 @@
 const LocalStrategy = require("passport-local").Strategy;
-const Admin = require("../models/admin");
-const Student = require("../models/student");
+const Admin = require("../models/adminModel");
+const Student = require("../models/studentModel");
 
 module.exports = function (passport) {
   // Admin strategy

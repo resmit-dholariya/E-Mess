@@ -27,6 +27,10 @@
         font-weight: bold;
         text-align: right;
       }
+      .error-message {
+        color: red;
+        margin-bottom: 20px;
+      }
     </style>
     <script>
       function confirmDelete(event) {
@@ -42,6 +46,12 @@
   </head>
   <body>
     <h1>Add Monthly Fees</h1>
+
+    <!-- Display error message if present -->
+    <% if (errorMessage) { %>
+      <p class="error-message"><%= errorMessage %></p>
+    <% } %>
+
     <form action="/admin/add-monthly-fees" method="POST">
       <label for="month">Month:</label>
       <select name="month" required>
@@ -60,9 +70,9 @@
       </select>
       <label for="year">Year:</label>
       <select name="year" required>
-        <% const currentYear = new Date().getFullYear(); %> <% for (let year =
-        currentYear; year <= currentYear + 4; year++) { %>
-        <option value="<%= year %>"><%= year %></option>
+        <% const currentYear = new Date().getFullYear(); %>
+        <% for (let year = currentYear; year <= currentYear + 4; year++) { %>
+          <option value="<%= year %>"><%= year %></option>
         <% } %>
       </select>
       <label for="feeAmount">Fee Amount:</label>
@@ -83,26 +93,24 @@
       </thead>
       <tbody>
         <% feesWithPendingAmount.forEach(fee => { %>
-        <tr>
-          <td><%= `${fee.month} ${fee.year}` %></td>
-          <td><%= fee.feeAmount %></td>
-          <td><%= fee.pendingCount %></td>
-          <td><%= fee.pendingAmount %></td>
-          <td class="action-buttons">
-            <a
-              href="/admin/generate-report?month=<%= fee.month %>&year=<%= fee.year %>"
-            >
-              <button>Generate Report</button>
-            </a>
-            <form
-              action="/admin/delete-monthly-fees/<%= fee._id %>"
-              method="POST"
-              onsubmit="confirmDelete(event);"
-            >
-              <button type="submit">Delete Fee</button>
-            </form>
-          </td>
-        </tr>
+          <tr>
+            <td><%= `${fee.month} ${fee.year}` %></td>
+            <td><%= fee.feeAmount %></td>
+            <td><%= fee.pendingCount %></td>
+            <td><%= fee.pendingAmount %></td>
+            <td class="action-buttons">
+              <a href="/admin/generate-report?month=<%= fee.month %>&year=<%= fee.year %>">
+                <button>Generate Report</button>
+              </a>
+              <form
+                action="/admin/delete-monthly-fees/<%= fee._id %>"
+                method="POST"
+                onsubmit="confirmDelete(event);"
+              >
+                <button type="submit">Delete Fee</button>
+              </form>
+            </td>
+          </tr>
         <% }) %>
         <tr class="grand-total">
           <td colspan="3">Grand Total:</td>
@@ -111,6 +119,6 @@
         </tr>
       </tbody>
     </table>
-    <a href="/admin"><button>Back to Admin Page</button></a>
+    <a href="/admin/dashboard"><button>Back to Admin Page</button></a>
   </body>
 </html>

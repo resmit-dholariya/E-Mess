@@ -1,19 +1,16 @@
-// controllers/admin.js
-const mongoose = require("mongoose");
-const Student = require("../models/student");
-const MonthlyFees = require("../models/monthlyFees");
+const Student = require("../models/studentModel");
+const MonthlyFees = require("../models/monthlyFeesModel");
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
 const nodemailer = require("nodemailer");
-const bcrypt = require("bcrypt");
 const passport = require("passport");
 
 exports.getLoginPage = (req, res) => {
-  res.render("login", { message: req.flash("error") });
+  res.render("adminLogin", { message: req.flash("error") });
 };
 
 exports.postLogin = passport.authenticate("admin-local", {
-  successRedirect: "/admin",
+  successRedirect: "/admin/dashboard",
   failureRedirect: "/admin/login",
   failureFlash: true,
 });
@@ -23,7 +20,6 @@ exports.getAdminPage = async (req, res) => {
     const students = await Student.find({});
     const monthlyFees = await MonthlyFees.find({});
 
-    // Calculate pending months count for each student
     const studentsWithPendingCount = students.map((student) => {
       const pendingMonthCount = Array.from(student.pendingFees.values()).filter(
         (isPending) => isPending
@@ -34,7 +30,10 @@ exports.getAdminPage = async (req, res) => {
       };
     });
 
-    res.render("admin", { students: studentsWithPendingCount, monthlyFees });
+    res.render("adminDashboard", {
+      students: studentsWithPendingCount,
+      monthlyFees,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -42,7 +41,7 @@ exports.getAdminPage = async (req, res) => {
 };
 
 exports.getAddStudentPage = (req, res) => {
-  res.render("studentSignup");
+  res.render("adminAddStudent");
 };
 
 exports.addStudent = async (req, res) => {
@@ -60,9 +59,7 @@ exports.addStudent = async (req, res) => {
   } = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10); // Hash password
     const newStudent = new Student({
-      userId: new mongoose.Types.ObjectId(),
       email,
       fullName,
       roomNumber,
@@ -72,12 +69,11 @@ exports.addStudent = async (req, res) => {
       mobileNumber,
       enrollmentNumber,
       username,
-      password: hashedPassword, // Store hashed password
-      pendingFees: new Map(),
-      paymentDateTime: new Map(),
+      password,
     });
+
     await newStudent.save();
-    res.redirect("/admin");
+    res.redirect("/admin/dashboard");
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -88,7 +84,7 @@ exports.getViewStudentPage = async (req, res) => {
   try {
     const student = await Student.findById(req.params.studentId);
     const monthlyFees = await MonthlyFees.find({});
-    res.render("view-student", { student, monthlyFees });
+    res.render("adminViewStudent", { student, monthlyFees });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -123,7 +119,7 @@ exports.deleteStudent = async (req, res) => {
     // Delete the student
     await Student.findByIdAndDelete(req.params.studentId);
 
-    res.redirect("/admin");
+    res.redirect("/admin/dashboard");
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
@@ -152,10 +148,14 @@ exports.getAddMonthlyFeesPage = async (req, res) => {
       0
     );
 
-    res.render("add-monthly-fees", {
+    // Get error message from query parameters if present
+    const errorMessage = req.query.error || "";
+
+    res.render("adminAddFees", {
       students,
       feesWithPendingAmount,
       grandTotal,
+      errorMessage,
     });
   } catch (err) {
     console.error(err);
@@ -165,7 +165,19 @@ exports.getAddMonthlyFeesPage = async (req, res) => {
 
 exports.addMonthlyFees = async (req, res) => {
   const { month, year, feeAmount } = req.body;
+
   try {
+    // Check if the monthly fees already exist
+    const existingFees = await MonthlyFees.findOne({ month, year });
+
+    if (existingFees) {
+      // If fees already exist, redirect with a message or handle accordingly
+      return res.redirect(
+        "/admin/add-monthly-fees?error=Fees for this month already exist"
+      );
+    }
+
+    // Create new MonthlyFees entry
     const newMonthlyFees = new MonthlyFees({
       month,
       year,
@@ -174,6 +186,7 @@ exports.addMonthlyFees = async (req, res) => {
     });
     await newMonthlyFees.save();
 
+    // Update all students with the new fee entry
     const students = await Student.find({});
     let pendingCount = 0;
 
@@ -183,6 +196,7 @@ exports.addMonthlyFees = async (req, res) => {
       pendingCount++;
     }
 
+    // Update the newly created MonthlyFees with the count of students
     newMonthlyFees.pendingCount = pendingCount;
     await newMonthlyFees.save();
 
@@ -224,9 +238,9 @@ exports.markFeeAsPaid = async (req, res) => {
 
     // Prepare email content
     const emailBody = `
-      GOVERNMENT ENGINEERING COLLEGE MODASA\n
+      GEC - MODASA\n
       HOSTEL BLOCK - E\n
-      MESS FACILITY FEE RECEIPT\n\n
+      MESS FEE PAYMENT RECEIPT\n\n
 
       Receipt Date: ${paymentDate.toLocaleDateString()} ${paymentDate.toLocaleTimeString()}\n
       Student Name: ${student.fullName}\n
@@ -237,6 +251,11 @@ exports.markFeeAsPaid = async (req, res) => {
       Mobile Number: ${student.mobileNumber}\n
       Paid Month: ${month} ${year}\n
       Amount Paid: ${monthlyFees.feeAmount}\n\n
+
+
+      Received By: 
+      Sawai Singh 
+      (Hostel Mess Contractor)
 
       Thank you for your payment!\n
     `;
@@ -253,7 +272,7 @@ exports.markFeeAsPaid = async (req, res) => {
     });
 
     const mailOptions = {
-      from: "resmit.dholariya.prsnl@gmail.com",
+      from: "RESMIT DHOLARIYA",
       to: student.email, // Use student's email
       subject: "Mess Fee Payment Receipt",
       text: emailBody,
@@ -276,26 +295,31 @@ exports.markFeeAsPaid = async (req, res) => {
 exports.deleteMonthlyFees = async (req, res) => {
   const { feeId } = req.params;
   try {
+    // Find the monthly fee entry
     const monthlyFee = await MonthlyFees.findById(feeId);
 
     if (!monthlyFee) {
       return res.status(404).send("Monthly fee not found");
     }
 
-    // Remove the fee entry from each student's pendingFees map
+    // Determine the fee key from the monthly fee entry
     const feeKey = `${monthlyFee.month} ${monthlyFee.year}`;
+
+    // Remove the fee entry from each student's pendingFees map
     const students = await Student.find({});
     for (const student of students) {
-      student.pendingFees.delete(feeKey);
-      await student.save();
+      if (student.pendingFees.has(feeKey)) {
+        student.pendingFees.delete(feeKey);
+        await student.save();
+      }
     }
 
-    // Delete the monthly fee
+    // Delete the monthly fee entry
     await MonthlyFees.findByIdAndDelete(feeId);
 
     res.redirect("/admin/add-monthly-fees");
   } catch (err) {
-    console.error(err);
+    console.error("Error in deleteMonthlyFees:", err);
     res.status(500).send("Server Error");
   }
 };
@@ -307,15 +331,17 @@ exports.generateReport = async (req, res) => {
       return res.status(400).send("Month and year are required");
     }
 
+    // Fetch students who have pending fees for the specified month and year
     const students = await Student.find({});
     const pendingStudents = students.filter((student) =>
       student.pendingFees.get(`${month} ${year}`)
     );
 
+    // Create a new Excel workbook and worksheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Pending Fees Report");
 
-    // Define the title rows
+    // Define and add title rows
     const titleRows = [
       "GOVERNMENT ENGINEERING COLLEGE MODASA",
       "HOSTEL BLOCK - E",
@@ -323,27 +349,25 @@ exports.generateReport = async (req, res) => {
       `MONTH: ${month} ${year}`,
     ];
 
-    // Define the number of columns to merge for title rows
-    const numColumns = 4; // Adjust based on your table width
+    const numColumns = 4; // Number of columns to merge
 
-    // Add title rows with merged columns
     titleRows.forEach((text, index) => {
       const row = worksheet.addRow([text]);
-      row.font = { size: index < 4 ? 14 : 12, bold: index < 4 }; // Larger text size and bold for the first 4 rows
+      row.font = { size: index < 4 ? 14 : 12, bold: index < 4 }; // Larger font size and bold for the first 4 rows
       row.alignment = { horizontal: "center", wrapText: true };
-      worksheet.mergeCells(row.number, 1, row.number, numColumns); // Merge columns for the title rows
+      worksheet.mergeCells(row.number, 1, row.number, numColumns); // Merge cells for title rows
     });
 
-    // Add two empty rows
+    // Add empty rows for spacing
     worksheet.addRow([]);
     worksheet.addRow([]);
 
-    // Add description
+    // Add description row
     worksheet.addRow([
       "The following students are requested to pay the fees by the end of this month",
     ]);
 
-    // Add one empty row
+    // Add another empty row
     worksheet.addRow([]);
 
     // Add table headers
@@ -385,21 +409,6 @@ exports.generateReport = async (req, res) => {
       });
     });
 
-    // Apply border only to table cells
-    worksheet.eachRow({ includeEmpty: true }, (row) => {
-      if (row.number >= headerRow.number) {
-        // Assuming table starts from the header row
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          cell.border = {
-            top: { style: "thin" },
-            left: { style: "thin" },
-            bottom: { style: "thin" },
-            right: { style: "thin" },
-          };
-        });
-      }
-    });
-
     // Set column widths
     worksheet.columns = [
       { width: 40 }, // Wider width for "Full Name"
@@ -408,6 +417,7 @@ exports.generateReport = async (req, res) => {
       { width: 20 },
     ];
 
+    // Set response headers and write the file to the response
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -428,6 +438,10 @@ exports.generateReport = async (req, res) => {
 exports.downloadAllStudents = async (req, res) => {
   try {
     const students = await Student.find({});
+
+    if (!students.length) {
+      return res.status(404).send("No student data available");
+    }
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Student Details");
@@ -513,7 +527,7 @@ exports.downloadAllStudents = async (req, res) => {
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=all_student_details.xlsx`
+      `attachment; filename=admin_dashboard_student_details.xlsx`
     );
 
     await workbook.xlsx.write(res);
@@ -539,7 +553,7 @@ exports.downloadBasicStudents = async (req, res) => {
     ];
 
     // Define the number of columns to merge for title rows
-    const numColumns = 5; // Adjust based on your table width
+    const numColumns = 7; // Adjust based on your table width
 
     // Add title rows with merged columns
     titleRows.forEach((text, index) => {
@@ -553,7 +567,13 @@ exports.downloadBasicStudents = async (req, res) => {
     worksheet.addRow([]);
 
     // Add table headers
-    worksheet.addRow(["Full Name", "Room Number", "Batch", "", ""]);
+    worksheet.addRow([
+      "Full Name",
+      "Room Number",
+      "Batch",
+      "Extra Column 1",
+      "Extra Column 2",
+    ]);
 
     // Style table header
     worksheet.getRow(5).eachCell((cell) => {
@@ -602,7 +622,7 @@ exports.downloadBasicStudents = async (req, res) => {
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=blank_student_details.xlsx`
+      `attachment; filename=basic_student_details.xlsx`
     );
 
     await workbook.xlsx.write(res);
@@ -670,7 +690,7 @@ exports.downloadReceipt = async (req, res) => {
       .moveDown(0.5);
     doc
       .fontSize(16)
-      .text("MESS FACILITY FEE RECEIPT", {
+      .text("MESS FEE PAYMENT RECEIPT", {
         align: "center",
         width: doc.page.width - 100,
       })
@@ -725,7 +745,19 @@ exports.downloadReceipt = async (req, res) => {
     doc
       .fillColor("#777")
       .fontSize(10)
-      .text("Thank you for your payment!", 0, doc.page.height - 100, {
+      .text("Sawai Singh", 0, doc.page.height - 100, {
+        align: "center",
+        width: doc.page.width,
+      })
+      .fillColor("#777")
+      .fontSize(10)
+      .text("(Hostel Mess Contractor)", 0, doc.page.height - 85, {
+        align: "center",
+        width: doc.page.width,
+      })
+      .fillColor("#777")
+      .fontSize(10)
+      .text("Thank you for your payment!", 0, doc.page.height - 60, {
         align: "center",
         width: doc.page.width,
       });

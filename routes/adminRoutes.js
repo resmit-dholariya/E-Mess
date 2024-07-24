@@ -1,13 +1,13 @@
 // routes/admin.js
 const express = require("express");
 const router = express.Router();
-const adminController = require("../controllers/admin");
+const adminController = require("../controllers/adminController");
 const { ensureAuthenticated } = require("../middleware/auth");
 
 // Login route
 router.get("/login", adminController.getLoginPage);
 router.post("/login", adminController.postLogin);
-router.get("/", ensureAuthenticated, adminController.getAdminPage);
+router.get("/dashboard", ensureAuthenticated, adminController.getAdminPage);
 router.get("/add-student", ensureAuthenticated, adminController.getAddStudentPage);
 router.post("/add-student", ensureAuthenticated, adminController.addStudent);
 router.get("/view-student/:studentId", ensureAuthenticated, adminController.getViewStudentPage);
