@@ -20,7 +20,7 @@ const studentSchema = new mongoose.Schema({
     required: true,
   },
   roomNumber: {
-    type: String,
+    type: Number,
     required: true,
   },
   branch: {
@@ -28,7 +28,7 @@ const studentSchema = new mongoose.Schema({
     required: true,
   },
   batch: {
-    type: String,
+    type: Number,
     required: true,
   },
   gender: {
@@ -36,7 +36,7 @@ const studentSchema = new mongoose.Schema({
     required: true,
   },
   mobileNumber: {
-    type: String,
+    type: Number,
     required: true,
   },
   enrollmentNumber: {
