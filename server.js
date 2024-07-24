@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -7,18 +8,13 @@ const flash = require("connect-flash");
 const studentRoutes = require("./routes/student");
 const adminRoutes = require("./routes/admin");
 const passportConfig = require("./config/passport");
+const connectdb = require("./db");
 
 const app = express();
 
 // Database connection
-mongoose
-  .connect("mongodb://localhost:27017/mess-management")
-  .then(() => {
-    console.log("Connected to MongoDB");
-  })
-  .catch((err) => {
-    console.error("Error connecting to MongoDB", err);
-  });
+
+connectdb();
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -45,7 +41,7 @@ app.use("/admin", adminRoutes);
 app.use("/student", studentRoutes);
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

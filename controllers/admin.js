@@ -42,7 +42,7 @@ exports.getAdminPage = async (req, res) => {
 };
 
 exports.getAddStudentPage = (req, res) => {
-  res.render("add-student");
+  res.render("studentSignup");
 };
 
 exports.addStudent = async (req, res) => {
@@ -74,6 +74,7 @@ exports.addStudent = async (req, res) => {
       username,
       password: hashedPassword, // Store hashed password
       pendingFees: new Map(),
+      paymentDateTime: new Map(),
     });
     await newStudent.save();
     res.redirect("/admin");

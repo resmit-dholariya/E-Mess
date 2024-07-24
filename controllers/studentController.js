@@ -15,7 +15,7 @@ exports.getSignup = (req, res) => {
 };
 
 exports.postSignup = passport.authenticate("student-signup", {
-  successRedirect: "/student/dashboard",
+  successRedirect: "/admin/",
   failureRedirect: "/student/signup",
   failureFlash: true,
 });
@@ -28,6 +28,13 @@ exports.getDashboard = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
-  req.logout();
-  res.redirect("/student/login");
+  req.logout(() => {
+    try {
+      res.redirect("/student/login");
+
+    } catch (error) {
+      res.send(error);
+
+    }
+  });
 };
