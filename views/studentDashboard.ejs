@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Student</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .total-row {
+      font-weight: bold;
+    }
+    .button-container {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-start;
+    }
+  </style>
+</head>
+<body>
+  <h1>View Student</h1>
+
+  <table>
+    <tr>
+      <th>Field</th>
+      <th>Value</th>
+    </tr>
+    <tr>
+      <td>Full Name</td>
+      <td><%= student.fullName %></td>
+    </tr>
+    <tr>
+      <td>serialNumber</td>
+      <td><%= student.serialNumber %></td>
+    </tr>
+    <tr>
+      <td>Room Number</td>
+      <td><%= student.roomNumber %></td>
+    </tr>
+    <tr>
+      <td>Branch</td>
+      <td><%= student.branch %></td>
+    </tr>
+    <tr>
+      <td>Batch</td>
+      <td><%= student.batch %></td>
+    </tr>
+    <tr>
+      <td>Gender</td>
+      <td><%= student.gender %></td>
+    </tr>
+    <tr>
+      <td>Mobile Number</td>
+      <td><%= student.mobileNumber %></td>
+    </tr>
+    <tr>
+      <td>Enrollment Number</td>
+      <td><%= student.enrollmentNumber %></td>
+    </tr>
+  </table>
+
+  <h2>Monthly Fees</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Fee Amount</th>
+        <th>Pending</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% let totalFees = 0; %>
+      <% let grandTotalMessage = []; %>
+      <% monthlyFees.forEach(fee => { %>
+        <% const feeKey = `${fee.month} ${fee.year}`; %>
+        <% if (student.pendingFees.has(feeKey)) { %>
+          <% const isPending = student.pendingFees.get(feeKey); %>
+          <% const paymentDate = student.paymentDateTime.get(feeKey); %>
+          <tr>
+            <td><%= feeKey %></td>
+            <td><%= fee.feeAmount %></td>
+            <td><%= isPending ? "Yes" : "No" %></td>
+            <td class="action-buttons">
+              <% if (isPending) { %>
+                <a href="upi://pay?pa=resm7848@paytm&pn=RESMIT%20DHOLARIYA&cu=INR&am=<%= fee.feeAmount %>&tn=<%= feeKey %>">
+                  <button>Pay Now</button>
+                </a>
+              <% } else { %>
+                <% if (paymentDate) { %>
+                  <button disabled>Fees Paid</button>
+                  <a href="/admin/download-receipt/<%= student._id %>/<%= fee.month %>/<%= fee.year %>">
+                    <button type="button">Download Receipt</button>
+                  </a>
+                <% } %>
+              <% } %>
+            </td>
+          </tr>
+          <% if (isPending) { %>
+            <% totalFees += fee.feeAmount; %>
+            <% grandTotalMessage.push(feeKey); %>
+          <% } %>
+        <% } %>
+      <% }); %>
+      <tr class="total-row">
+        <td>Total Pending Fees</td>
+        <td colspan="2"><%= totalFees %></td>
+        <td>
+          <% if (totalFees > 0) { %>
+            <a href="upi://pay?pa=resm7848@paytm&pn=RESMIT%20DHOLARIYA&cu=INR&am=<%= totalFees %>&tn=<%= grandTotalMessage.join('%2C%20') %>">
+              <button>Pay Grand Total</button>
+            </a>
+          <% } %>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="button-container">
+    <a href="/student/logout">
+      <button>Logout</button>
+    </a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid black;
+      }
+      th {
+        cursor: pointer;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+      }
+    </style>
+    <script>
+      function confirmDelete(event) {
+        event.preventDefault();
+        const input = prompt("Type 'DELETE' to confirm the deletion:");
+        if (input === "DELETE") {
+          event.target.submit();
+        } else {
+          alert("Confirmation failed. Please type 'DELETE' to proceed.");
+        }
+      }
+
+      function sortTable(columnIndex) {
+        const table = document.querySelector("table");
+        const tbody = table.querySelector("tbody");
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+        
+        const isPendingCountColumn = columnIndex === 4;
+        const isNumeric = !isNaN(
+          parseFloat(rows[0].getElementsByTagName("td")[columnIndex].innerText)
+        );
+
+        rows.sort((rowA, rowB) => {
+          const cellA = rowA.getElementsByTagName("td")[columnIndex].innerText;
+          const cellB = rowB.getElementsByTagName("td")[columnIndex].innerText;
+
+          if (isNumeric) {
+            const valueA = parseFloat(cellA);
+            const valueB = parseFloat(cellB);
+
+            // Sorting logic: Descending order for pending months count, ascending for others
+            if (isPendingCountColumn) {
+              return valueB - valueA; // Descending order
+            } else {
+              return valueA - valueB; // Ascending order
+            }
+          } else {
+            return cellA.localeCompare(cellB); // Text comparison for non-numeric columns
+          }
+        });
+
+        // Re-attach rows to the table in the sorted order
+        rows.forEach((row) => tbody.appendChild(row));
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Admin Dashboard</h1>
+    <div>
+      <a href="/admin/add-student"><button>Add Student</button></a>
+      <a href="/admin/add-monthly-fees"><button>Add Monthly Fees</button></a>
+      <a href="/admin/download-all-students"><button>Download Student Details</button></a>
+      <a href="/admin/download-basic-students"><button>Download Blank Student Details</button></a>
+      <a href="/admin/generate-fees-collection-report"><button>Fees Collection Report</button></a>
+    </div>
+    
+    <!-- Display the total number of students -->
+    <div>
+      <p>Total number of students: <%= students.length %></p>
+    </div>
+
+    <!-- Search form -->
+    <div>
+      <form action="/admin/search-students" method="GET">
+        <input type="text" name="query" placeholder="Search by Full Name, Room Number, Branch, Batch, Gender" />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+    <h2>Student List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Sr. No.</th>
+          <th>Full Name</th>
+          <th onclick="sortTable(1)">Room Number</th>
+          <th onclick="sortTable(2)">Batch</th>
+          <th>Mobile Number</th>
+          <th onclick="sortTable(4)">Pending Months Count</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% students.forEach(student => { %>
+        <tr>
+          <td><%= student.serialNumber %></td>
+          <td><%= student.fullName %></td>
+          <td><%= student.roomNumber %></td>
+          <td><%= student.batch %></td>
+          <td><%= student.mobileNumber %></td>
+          <td><%= student.pendingMonthCount %></td>
+          <td class="action-buttons">
+            <a href="/admin/view-student/<%= student._id %>"><button>View Details</button></a>
+            <form
+              action="/admin/delete-student/<%= student._id %>"
+              method="POST"
+              onsubmit="confirmDelete(event);"
+            >
+              <button type="submit">Delete Student</button>
+            </form>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </body>
+</html>

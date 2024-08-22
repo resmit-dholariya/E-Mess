@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Student</title>
+  <style>
+    /* Basic styling */
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    table, th, td {
+      border: 1px solid black;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+
+    h1, h2 {
+      color: #333;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      background-color: white;
+      padding: 20px;
+      border: 1px solid black;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+    }
+
+    .modal button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>View Student</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Full Name</td>
+        <td><%= student.fullName %></td>
+      </tr>
+      <tr>
+        <td>Serial Number</td>
+        <td><%= student.serialNumber %></td>
+      </tr>
+      <tr>
+        <td>Room Number</td>
+        <td>
+          <%= student.roomNumber %>
+          <button type="button" onclick="openDialog('roomNumberDialog')">Change Room Number</button>
+        </td>
+      </tr>
+      <tr>
+        <td>Branch</td>
+        <td><%= student.branch %></td>
+      </tr>
+      <tr>
+        <td>Batch</td>
+        <td><%= student.batch %></td>
+      </tr>
+      <tr>
+        <td>Gender</td>
+        <td><%= student.gender %></td>
+      </tr>
+      <tr>
+        <td>Mobile Number</td>
+        <td><%= student.mobileNumber %></td>
+      </tr>
+      <tr>
+        <td>Enrollment Number</td>
+        <td>
+          <%= student.enrollmentNumber %>
+          <button type="button" onclick="openDialog('enrollmentNumberDialog')">Change Enrollment Number</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Monthly Fees</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th>
+        <th>Fee Amount</th>
+        <th>Pending</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% let totalFees = 0; %>
+      <% if (student && monthlyFees) { %>
+        <% monthlyFees.forEach(fee => { %>
+          <% const feeKey = `${fee.month} ${fee.year}`; %>
+          <% const isPending = student.pendingFees && student.pendingFees[feeKey]; %>
+          <% const paymentDate = student.paymentDateTime && student.paymentDateTime[feeKey]; %>
+          <tr>
+            <td><%= feeKey %></td>
+            <td><%= fee.feeAmount %></td>
+            <td><%= isPending ? "Yes" : "No" %></td>
+            <td class="action-buttons">
+              <% if (isPending) { %>
+                <form
+                  id="markAsPaidForm-<%= feeKey %>"
+                  action="/admin/mark-fee-as-paid/<%= student._id %>/<%= feeKey %>"
+                  method="post"
+                >
+                  <div class="payment-method">
+                    <input type="radio" id="online-<%= feeKey %>" name="paymentMethod" value="Online" required>
+                    <label for="online-<%= feeKey %>">Online</label>
+                    <input type="radio" id="cash-<%= feeKey %>" name="paymentMethod" value="Cash" required>
+                    <label for="cash-<%= feeKey %>">Cash</label>
+                    &nbsp;&nbsp;
+                    <button type="button" onclick="confirmMarkAsPaid('<%= feeKey %>')">Mark as Paid</button>
+                  </div>
+                </form>
+                <form
+                  id="updateFeeAmountForm-<%= feeKey %>"
+                  action="/admin/update-fee-amount"
+                  method="post"
+                  style="display: inline;"
+                >
+                  <input type="hidden" name="feeKey" value="<%= feeKey %>">
+                  <input type="number" name="newFeeAmount" placeholder="New Amount" required>
+                  <input type="hidden" name="studentId" value="<%= student._id %>">
+                  <button type="submit">Update Amount</button>
+                </form>
+              <% } else { %>
+                <% if (!paymentDate) { %>
+                  <button disabled>Not Applicable</button>
+                <% } %>
+                <% if (paymentDate) { %>
+                  <button disabled>Fees Paid</button>
+                  <a href="/admin/download-receipt/<%= student._id %>/<%= fee.month %>/<%= fee.year %>">
+                    <button type="button">Download Receipt</button>
+                  </a>
+                <% } %>
+              <% } %>
+            </td>
+          </tr>
+          <% if (isPending) { %>
+            <% totalFees += fee.feeAmount; %>
+          <% } %>
+        <% }); %>
+        <tr>
+          <th>Total Pending Fees</th>
+          <td colspan="3"><%= totalFees %></td>
+        </tr>
+      <% } else { %>
+        <tr>
+          <td colspan="4">No data available</td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+
+  <a href="/admin/dashboard">
+    <button>Back to Admin Page</button>
+  </a>
+
+  <!-- Modal Dialogs -->
+  <div id="roomNumberDialog" class="modal" aria-labelledby="roomNumberDialogTitle" aria-hidden="true">
+    <h2 id="roomNumberDialogTitle">Change Room Number</h2>
+    <form id="roomNumberForm" action="/admin/update-room-number/<%= student._id %>" method="post">
+      <label for="newRoomNumber">New Room Number:</label>
+      <input type="text" id="newRoomNumber" name="newRoomNumber" required />
+      <button type="submit">Update</button>
+      <button type="button" onclick="closeDialog('roomNumberDialog')">Cancel</button>
+    </form>
+  </div>
+
+  <div id="enrollmentNumberDialog" class="modal" aria-labelledby="enrollmentNumberDialogTitle" aria-hidden="true">
+    <h2 id="enrollmentNumberDialogTitle">Change Enrollment Number</h2>
+    <form id="enrollmentNumberForm" action="/admin/update-enrollment-number/<%= student._id %>" method="post">
+      <label for="newEnrollmentNumber">New Enrollment Number:</label>
+      <input type="text" id="newEnrollmentNumber" name="newEnrollmentNumber" required />
+      <button type="submit">Update</button>
+      <button type="button" onclick="closeDialog('enrollmentNumberDialog')">Cancel</button>
+    </form>
+  </div>
+
+  <script>
+    function openDialog(dialogId) {
+      const dialog = document.getElementById(dialogId);
+      dialog.style.display = 'block';
+      dialog.querySelector('input').focus(); // Set focus on the first input
+    }
+
+    function closeDialog(dialogId) {
+      const dialog = document.getElementById(dialogId);
+      dialog.style.display = 'none';
+    }
+
+    function confirmMarkAsPaid(feeKey) {
+      if (confirm("Are you sure you want to mark this fee as paid?")) {
+        document.getElementById("markAsPaidForm-" + feeKey).submit();
+      }
+    }
+  </script>
+</body>
+</html>
